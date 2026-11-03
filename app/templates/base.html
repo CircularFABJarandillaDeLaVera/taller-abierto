@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ app_name }}{% endblock %}</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido</a>
+  <header class="site-header"><div class="container header-inner"><a class="wordmark" href="/" aria-label="Taller Abierto, inicio">Taller<span>Abierto</span><i aria-hidden="true"></i></a><nav aria-label="Navegación principal"><a href="/catalogo">Creaciones</a><a href="/figura-personalizada">Tu figura</a><a href="/panel">Mi espacio</a></nav></div></header>
+  <main id="contenido" class="container">{% block content %}{% endblock %}</main>
+  <footer class="site-footer"><div class="container footer-inner"><span>Taller Abierto · demo educativa de Comercio y Marketing</span><span>Productos y precios orientativos de ejemplo</span><a href="/creadores">Conoce a quienes crean</a></div></footer>
+</body>
+</html>
+

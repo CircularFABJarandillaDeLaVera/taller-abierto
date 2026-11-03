@@ -1,0 +1,50 @@
+# Entornos y paquetes locales
+.venv/
+venv/
+env/
+.virtualenv/
+*.egg-info/
+
+# Configuración privada; se conserva la plantilla pública
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# Bases de trabajo y archivos auxiliares de SQLite
+data/
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+
+# Adjuntos privados y cuarentena de borrado
+private_uploads/
+*.deleting
+
+# Capturas locales: podrían mostrar conversaciones o accesos privados
+docs/capturas/
+
+# Cachés, resultados y temporales
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.hypothesis/
+.coverage
+.coverage.*
+htmlcov/
+test-results/
+*.log
+*.tmp
+*.bak
+*.swp
+~$*
+.DS_Store
+Thumbs.db
+

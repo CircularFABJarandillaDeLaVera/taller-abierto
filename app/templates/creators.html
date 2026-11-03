@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}Creadores · {{ app_name }}{% endblock %}
+{% block content %}
+<section class="page-intro"><span class="eyebrow">Ocho miradas</span><h2>Conoce a los creadores</h2><p>Alias ficticios para la demo educativa. Cada persona podrá presentar su trabajo y recibir encargos en una fase posterior.</p></section>
+<div class="creator-grid">{% for creator in creators %}<article id="{{ creator.alias }}" class="creator-card card"><span class="avatar">{{ creator.alias[0]|upper }}</span><div><h3>@{{ creator.alias }}</h3><p>{{ creator.presentation }}</p>{% if creator.products %}<p class="muted">{{ creator.products|length }} producto{% if creator.products|length != 1 %}s{% endif %} en el escaparate.</p>{% else %}<p class="muted">Sin productos publicados todavía.</p>{% endif %}</div></article>{% endfor %}</div>
+{% endblock %}

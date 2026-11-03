@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}Escaparate · {{ app_name }}{% endblock %}
+{% block content %}
+<section class="page-intro catalog-intro"><span class="eyebrow">Creaciones del taller</span><h1>Ideas que se convierten en productos</h1><p>Cada pieza tiene detrás a un creador. Explora los ejemplos y abre su ficha para conversar sobre tu idea.</p><p class="demo-note">Demo educativa · productos y precios orientativos</p></section>
+<div class="product-grid catalog-grid">{% for product in products %}{% set featured = loop.first %}{% set visual_index = loop.index0 %}{% include "_product_card.html" %}{% else %}<p>Las creaciones aparecerán aquí cuando se carguen los ejemplos.</p>{% endfor %}</div>
+{% endblock %}

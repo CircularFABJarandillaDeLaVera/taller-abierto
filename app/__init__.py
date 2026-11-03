@@ -1,0 +1,2 @@
+"""Aplicación Taller Abierto."""
+

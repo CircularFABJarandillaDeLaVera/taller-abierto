@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block title %}Solicitud recibida · {{ app_name }}{% endblock %}
+{% block content %}
+<section class="confirmation"><span class="confirmation-mark" aria-hidden="true">✓</span><span class="eyebrow">Solicitud recibida</span><h1>Tu idea ya está en el taller</h1><p>Hemos guardado tu solicitud. En «Mi espacio» podrás seguir la conversación y responder cuando tengas novedades.</p>{% if recovery %}<div class="private-note"><h2>Guarda tu acceso privado</h2><p>Para volver a tu conversación después de cerrar sesión, guarda el enlace de recuperación que aparece a continuación. Solo se muestra ahora, dura 48 horas y quien lo tenga podrá acceder a tu conversación.</p><a href="/recuperar/{{ recovery }}" rel="noreferrer">Guardar enlace privado de recuperación</a></div>{% endif %}<div class="hero-actions"><a class="button" href="/panel">Ir a mi espacio</a><a class="button button-outline" href="/catalogo">Ver creaciones</a></div></section>
+{% endblock %}

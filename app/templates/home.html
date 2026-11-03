@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}{{ app_name }} · Ideas que se convierten en productos{% endblock %}
+{% block content %}
+<section class="hero">
+  <div class="hero-copy"><span class="eyebrow">Creado con ideas propias</span><h1>Tu idea.<br><em>Nuestra próxima creación.</em></h1><p>Descubre piezas con personalidad o cuéntanos qué te gustaría crear. Habla directamente con su creador.</p><div class="hero-actions"><a class="button" href="/catalogo">Explorar creaciones <span aria-hidden="true">↗</span></a><a class="button button-outline" href="/figura-personalizada">Encargar mi figura</a></div><p class="hero-note">Un escaparate de ocho jóvenes creadores · demo educativa</p></div>
+  <div class="hero-scene" aria-label="Composición de tres ilustraciones de ejemplo de productos">
+    {% if products|length > 0 %}<a class="scene-main" href="/productos/{{ products[0].slug }}"><img src="/static/{{ products[0].image_path }}" alt="Ilustración de ejemplo: {{ products[0].name }}"><span>Figura a tu manera</span></a>{% endif %}
+    {% if products|length > 1 %}<a class="scene-small scene-one" href="/productos/{{ products[1].slug }}"><img src="/static/{{ products[1].image_path }}" alt="Ilustración de ejemplo: {{ products[1].name }}"></a>{% endif %}
+    {% if products|length > 2 %}<a class="scene-small scene-two" href="/productos/{{ products[2].slug }}"><img src="/static/{{ products[2].image_path }}" alt="Ilustración de ejemplo: {{ products[2].name }}"></a>{% endif %}
+  </div>
+</section>
+<section id="creaciones" class="section-heading"><div><span class="eyebrow">Hecho para contar algo</span><h2>Ideas que se convierten en productos</h2></div><a class="text-link" href="/catalogo">Ver todas las creaciones <span aria-hidden="true">→</span></a></section>
+<div class="product-grid">{% for product in products[:3] %}{% set featured = false %}{% set visual_index = loop.index0 %}{% include "_product_card.html" %}{% else %}<p>Las creaciones se mostrarán aquí cuando se carguen los ejemplos.</p>{% endfor %}</div>
+<section id="personalizada" class="custom-section"><div class="custom-copy"><span class="eyebrow">Tu figura personalizada</span><h2>Un regalo que se parece a ti</h2><p>Cuéntanos qué figura imaginas. Puedes aportar fotografías privadas como referencia ahora o después de enviar tu solicitud, con las autorizaciones necesarias.</p><p class="muted">El docente asignará el encargo a un creador. Las ilustraciones explican el recorrido; no se genera una figura automáticamente.</p><a class="button" href="/figura-personalizada">Cuéntanos tu idea <span aria-hidden="true">↗</span></a></div><div class="process-art"><img src="/static/illustrations/process.svg" alt="Ilustración de ejemplo: foto ficticia de referencia, propuesta y figura creada como pasos separados"><span>Referencia <b>→</b> Propuesta <b>→</b> Pieza</span></div></section>
+{% endblock %}
+
