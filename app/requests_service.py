@@ -8,7 +8,6 @@ from sqlalchemy.orm import Session
 from app.models import Message, Order, OrderKind, OrderStatus, Product, User, UserRole, RecoveryToken
 from app.identity import fingerprint, now, RECOVERY_HOURS
 from datetime import timedelta
-from app.photos import PreparedPhoto, save_batch, clean_written
 
 
 class InvalidRequest(ValueError):
@@ -29,13 +28,12 @@ def validate(alias: str, message: str, offer: str = "") -> tuple[str, str, int |
     return alias, message, cents
 
 
-def create_request(db: Session, *, alias: str, message: str, kind: OrderKind, product: Product | None = None, offer: str = "", visitor: User | None = None, photos: list[PreparedPhoto] | None = None) -> tuple[Order, str]:
+def create_request(db: Session, *, alias: str, message: str, kind: OrderKind, product: Product | None = None, offer: str = "", visitor: User | None = None) -> tuple[Order, str]:
     alias, message, cents = validate(alias, message, offer)
     if kind == OrderKind.PRODUCT_INQUIRY and product is None:
         raise InvalidRequest("El producto no existe.")
     if kind == OrderKind.CUSTOM_FIGURE and (product is not None or cents is not None):
         raise InvalidRequest("Esta solicitud no admite producto ni oferta.")
-    written = []
     try:
         # Identificador interno aleatorio por solicitud: el alias escrito no concede acceso.
         if visitor is None or visitor.role != UserRole.VISITOR:
@@ -50,10 +48,8 @@ def create_request(db: Session, *, alias: str, message: str, kind: OrderKind, pr
         db.add(Message(order_id=order.id, author_id=visitor.id, body=message))
         recovery = secrets.token_urlsafe(32)
         db.add(RecoveryToken(token_hash=fingerprint(recovery), order_id=order.id, expires_at=now() + timedelta(hours=RECOVERY_HOURS)))
-        save_batch(db, order, visitor, photos or [], written)
         db.commit()
         return order, recovery
     except Exception:
         db.rollback()
-        clean_written(written)
         raise

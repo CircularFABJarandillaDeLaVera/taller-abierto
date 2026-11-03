@@ -5,13 +5,24 @@ from sqlalchemy import inspect, text
 from sqlalchemy.orm import sessionmaker
 
 from app.main import app
+from app.database import Base, get_db, make_engine
 
 
-def test_home_and_health():
-    client = TestClient(app)
-    assert client.get("/").status_code == 200
-    assert "Tu idea." in client.get("/").text
-    assert client.get("/health").json() == {"status": "ok"}
+def test_home_and_health(tmp_path):
+    engine = make_engine(f"sqlite:///{tmp_path / 'inicio.db'}")
+    Base.metadata.create_all(engine)
+    Session = sessionmaker(engine)
+    def override_db():
+        with Session() as db:
+            yield db
+    app.dependency_overrides[get_db] = override_db
+    try:
+        client = TestClient(app)
+        assert client.get("/").status_code == 200
+        assert "Tu idea." in client.get("/").text
+        assert client.get("/health").json() == {"status": "ok"}
+    finally:
+        app.dependency_overrides.clear()
 
 
 def test_migrated_schema_has_expected_tables(tmp_path: Path):

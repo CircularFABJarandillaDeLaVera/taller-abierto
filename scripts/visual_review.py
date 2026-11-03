@@ -144,7 +144,7 @@ def main():
                 ("catalogo-movil", "/catalogo", 390, 844, None, False),
                 ("producto-escritorio", "/productos/figura-personalizada-3d", 1360, 900, None, False),
                 ("producto-movil", "/productos/figura-personalizada-3d", 390, 844, None, False),
-                ("solicitud-movil", "/figura-personalizada", 390, 844, None, True),
+                ("solicitud-movil", "/figura-personalizada", 390, 844, None, False),
                 ("acceso-escritorio", "/entrar", 1360, 900, None, False),
                 ("panel-docente", "/panel", 1360, 900, "teacher", False),
                 ("panel-creador", "/panel", 390, 844, "student", False),

@@ -1,86 +1,70 @@
 # Taller Abierto
 
-Taller Abierto será una demo de escaparate y gestión de encargos para ocho jóvenes del ciclo de Comercio y Marketing. Su valor diferencial frente a un catálogo sencillo es que prepara la conversación, el destinatario del encargo y su seguimiento; no es una tienda ni una web oficial del centro.
+Demo educativa de escaparate y encargos para ocho creadores ficticios del ciclo de Comercio y Marketing. No es una tienda ni una web oficial del instituto. Cinco productos de ejemplo tienen precios orientativos. La apariencia toma colores de `cartel.jpg`, que se conserva intacto.
 
-## Fases 0 a 5
+## Funciones actuales
 
-La aplicación incluye catálogo educativo, solicitudes, paneles privados, conversación por recarga y fotografías privadas para figuras personalizadas. Creadores y docente entran con contraseña individual; el visitante usa sesión de navegador y un enlace privado de recuperación.
+- Catálogo, fichas y creadores; consulta u oferta a partir de un producto.
+- Solicitud de figura personalizada con alias y descripción, pendiente de asignación docente. Las fotografías se acordarán después con el creador por otro canal. La aplicación ya no admite subirlas, verlas ni eliminarlas.
+- Acceso individual de creadores y docente; sesión del visitante y enlace privado de recuperación de un solo uso. Paneles, asignación o reasignación docente y conversación privada con CSRF.
+- Avisos dentro de la web y lectura por persona. «Mi espacio» cuenta conversaciones con novedades. «Nueva para ti» y «Nueva sin asignar» son distintos de mensajes nuevos. Las consultas no marcan lectura; el navegador confirma el corte de mensajes mostrados. Si falla, puede reintentarlo. El estado del encargo no cambia al abrirlo.
 
-Se ha inspeccionado `cartel.jpg` y se conserva el original. La interfaz usa sus referencias cromáticas (azul marino, verde, blanco y acentos amarillo/naranja), sin usar el cartel como fondo ni crear logotipos.
+Los avisos se consultan cada 10 segundos mientras haya una sesión válida y la pestaña esté visible. `POLL_SECONDS` permite entre 5 y 120 segundos. No hay avisos con la web cerrada, correo, push, WebSockets ni sonido.
 
-La microfase 5 renueva la portada, el catálogo y las fichas con ilustraciones SVG locales de ejemplo, y mejora la lectura de paneles y conversaciones. No modifica los datos ni los permisos. Las capturas de revisión visual con datos ficticios están en `docs/capturas/`; se generan de nuevo, en una base aislada, con `.\.venv\Scripts\python.exe scripts\visual_review.py` si hay Chrome instalado en la ruta indicada por el script.
+## Instalación local
 
-## Carga del catálogo de ejemplo
-
-Con la base migrada, ejecutar:
-
-```powershell
-python -m app.seed
-```
-
-El comando crea ocho creadores y cinco productos solo si faltan, usando alias y `slug` estables. Puede repetirse sin duplicar ni borrar datos ajenos.
-
-## Preparación local
-
-Se ha elegido Python 3.12 (comprobado en el entorno: 3.12.10). En PowerShell, desde esta carpeta:
+Python 3.12. Desde la raíz WebIES en PowerShell:
 
 ```powershell
-py -3.12 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-Copy-Item .env.example .env
+if (-not (Test-Path .venv)) { py -3.12 -m venv .venv }
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 New-Item -ItemType Directory -Force data | Out-Null
-alembic upgrade head
-uvicorn app.main:app --reload
+.\.venv\Scripts\python.exe -m alembic upgrade head
+.\.venv\Scripts\python.exe -m app.seed
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --no-access-log
 ```
 
-Abrir `http://127.0.0.1:8000/` y comprobar `http://127.0.0.1:8000/health`. Las pruebas se ejecutan con `python -m pytest tests -q -p no:cacheprovider` y usan bases temporales. `pytest.ini` limita la búsqueda de pruebas a `tests/`, sin explorar `data/`.
+Abrir `http://127.0.0.1:8000/`; salud en `/health`. `app.seed` puede repetirse sin duplicar el catálogo ni borrar datos ajenos. Si ya existe `.env` o la base, conservarlos. Alembic aplica solo migraciones pendientes. La revisión 0006 inicializa los mensajes anteriores como leídos para quienes tenían acceso; no modifica encargos, mensajes ni adjuntos.
 
-Rutas principales: `/catalogo`, `/productos/figura-personalizada-3d` y `/creadores`. Las ilustraciones son SVG locales marcadas como ejemplos; no son fotografías de alumnos.
-
-## Solicitudes locales de ejemplo
-
-Tras migrar y cargar los ejemplos, abrir `http://127.0.0.1:8000/productos/figura-personalizada-3d` para consultar u ofrecer un importe al creador, o `http://127.0.0.1:8000/figura-personalizada` para describir una figura pendiente de asignación docente. Usar solo alias y contenidos ficticios. Las fotografías se pueden adjuntar al crear la figura o después. El servidor valida campos y CSRF, guarda solicitud y mensaje inicial en una transacción y redirige a una confirmación que muestra una sola vez el enlace privado de recuperación. Los importes se guardan como céntimos enteros; una oferta no es pago ni compra.
-
-Comprobación: `python -m pytest tests -q -p no:cacheprovider`.
-
-## Tres roles en local
-
-Desde la raíz del proyecto, con `.venv` activado:
+Para preparar accesos de demo, ejecutar por separado y elegir contraseñas privadas cuando el comando las solicite:
 
 ```powershell
-alembic upgrade head
-python -m app.seed
-python -m app.provision luna_taller --role student
-python -m app.provision norte_creativo --role student
-python -m app.provision docente_demo --role teacher
-uvicorn app.main:app --host 127.0.0.1 --port 8000 --no-access-log
+.\.venv\Scripts\python.exe -m app.provision luna_taller --role student
+.\.venv\Scripts\python.exe -m app.provision docente_demo --role teacher
 ```
 
-El comando solicita y confirma la contraseña sin mostrarla ni guardarla en archivos del proyecto. Repetirlo renueva el hash y revoca sesiones existentes. Provisionar individualmente los demás creadores con su alias si se van a probar. Contraseñas: PBKDF2-HMAC-SHA256 con sal aleatoria y 600 000 iteraciones; sesiones y recuperación: tokens aleatorios de alta entropía guardados solo como huellas SHA-256.
+Repetir el primer comando para otros alias de creadores si se necesitan. Provisionar de nuevo revoca sesiones anteriores de esa cuenta. Nunca registrar contraseñas ni enlaces de recuperación en capturas o informes.
 
-1. Visitante: abrir `http://127.0.0.1:8000/productos/figura-personalizada-3d` o `/figura-personalizada`, enviar datos ficticios, guardar el enlace privado que aparece una vez en la confirmación y entrar en `/panel`. Cerrar sesión desde el panel; abrir el enlace guardado y pulsar «Continuar» para recuperar la conversación. El enlace dura 48 horas y se consume al usarlo.
-2. Creador: en otra sesión de navegador, abrir `/entrar` con su alias y contraseña; `/panel` muestra sus encargos asignados. Abrir uno, responder y actualizar la página.
-3. Docente: en otra sesión, abrir `/entrar` con `docente_demo`; `/panel` muestra todos los encargos, incluidos los anteriores. En una figura personalizada, elegir creador y guardar la asignación. Se permite reasignar; el creador anterior pierde acceso.
+## Recorridos
 
-La sesión dura 12 horas y se revoca al cerrar sesión. Las solicitudes anteriores a la migración 0004 permanecen visibles al docente, pero no son reclamables por alias. Cada lectura, respuesta y asignación comprueba permisos en el servidor. Los formularios POST usan CSRF; cookies HttpOnly, SameSite y Secure cuando `APP_ENV=production`. Para ejecutar la suite: `python -m pytest tests -q -p no:cacheprovider`.
+1. Visitante: abrir `/productos/figura-personalizada-3d` para consultar al creador o `/figura-personalizada` para describir la idea. Usar datos ficticios. Tras enviar, guardar en privado el enlace de recuperación que aparece una vez. La figura queda sin asignar. `/panel` muestra sus encargos; después puede cerrar sesión y recuperar el acceso con el enlace.
+2. Creador: en otro perfil de navegador, entrar en `/entrar` y abrir `/panel`. Solo ve sus solicitudes. Puede leer y responder; al reasignar una figura, el antiguo creador pierde acceso y su tarjeta.
+3. Docente: en otro perfil, entrar en `/entrar`, revisar `/panel` y asignar una figura desde su detalle. Ve las solicitudes sin asignar y las novedades propias.
 
-## Fotografías privadas de figuras
+Las sesiones duran 12 horas y se pueden revocar. Los enlaces de recuperación duran 48 horas y se consumen una vez. Las solicitudes anteriores a la identificación de visitantes no se reclaman por coincidencia de alias. La oferta es orientativa y no implica pago ni compra.
 
-Instalar la nueva dependencia desde `requirements.txt` y migrar:
+## Comprobaciones
+
+Las pruebas usan bases y carpetas temporales. Para aislar también la configuración de entorno al ejecutarlas en PowerShell:
 
 ```powershell
-python -m pip install -r requirements.txt
-alembic upgrade head
+$testRoot = Join-Path $env:TEMP ('ta-suite-' + [guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Path $testRoot | Out-Null
+$env:DATABASE_URL = 'sqlite:///' + (Join-Path $testRoot 'isolated.db').Replace('\','/')
+$env:ATTACHMENTS_DIR = Join-Path $testRoot 'private'
+.\.venv\Scripts\python.exe -m pytest tests -q -p no:cacheprovider --basetemp (Join-Path $testRoot 'pytest')
+node --check app/static/notifications.js
 ```
 
-En `/figura-personalizada` se pueden adjuntar hasta tres JPG/PNG de 5 MB cada una, o enviar la solicitud sin archivos. En `/panel/solicitudes/{id}` las personas autorizadas pueden añadir fotos después, hasta tres activas en total. Cada lote exige por separado la declaración de derechos y el permiso de la persona representada; la fecha, versión del texto y usuario aceptante quedan vinculados a los adjuntos de ese lote. El docente debe revisar la autorización correspondiente cuando aparezca un menor; marcar las casillas no sustituye esa revisión. Publicar las imágenes en catálogo o redes exigiría otra autorización.
+Chrome instalado en la ruta indicada por el script permite revisar dos sesiones ficticias y guardar capturas en una carpeta ignorada por Git, con una base aislada:
 
-Los archivos se guardan con nombres aleatorios en `ATTACHMENTS_DIR` (por defecto `./private_uploads`, fuera de `app/static` y excluido de Git). Se decodifican, se limitan a 6000 píxeles por lado y 20 millones de píxeles, se orientan y se vuelven a guardar sin EXIF. La petición multipart completa se limita a 16 MB. Solo solicitante, creador actualmente asignado y docente pueden abrir la URL privada de una foto; solicitante y docente pueden eliminarla. Al eliminar, el archivo se mueve primero a cuarentena privada, se quita el registro activo y luego se borra físicamente. Si falla el movimiento inicial, se conserva registro y archivo; si falla el borrado final, queda un archivo en cuarentena `.deleting` que requiere limpieza administrativa, sin acceso público. Se conserva solo la trazabilidad mínima de la aceptación.
+```powershell
+.\.venv\Scripts\python.exe scripts\phase6_browser_review.py
+```
 
-Esta demo todavía no debe exponerse públicamente: faltan HTTPS y despliegue seguro, limitación de intentos de acceso, gestión formal de cuentas, retención de datos y revisión de permisos de menores. No hay WebSockets, pagos ni IA.
+## Datos históricos y límites
 
-## Estado y límites
+La antigua función de fotografías se retiró de la interfaz y de todas sus rutas. Los adjuntos y aceptaciones previos, sus archivos privados y las migraciones se conservan sin acceso desde la aplicación. `ATTACHMENTS_DIR` sigue describiendo dónde están los archivos históricos, fuera de `static` y de Git. No moverlos ni eliminarlos como parte de la actualización. Antes de enviar imágenes por otro canal se requieren derechos o autorización de uso y permiso expreso de la persona representada; para menores debe intervenir su representante legal.
 
-Los datos son ficticios. No hay pagos, carrito, stock, IA, WebSockets ni despliegue. La identidad y los permisos por participante funcionan en local; todavía faltan controles operativos antes de exponer conversaciones o encargos públicamente. La situación real y el siguiente paso están en [ESTADO.md](ESTADO.md); las decisiones ampliadas están en [PROJECT_CANONICAL_CONTEXT.md](PROJECT_CANONICAL_CONTEXT.md).
-
+El proyecto sigue limitado a uso local con datos ficticios. Se preparó el controlador PostgreSQL, la lectura de `DATABASE_URL` en Alembic, el arranque de Render y las comprobaciones de configuración; **no se ha desplegado ni probado contra PostgreSQL real**. Para abrirlo públicamente faltan endurecimiento de acceso, retención de datos y verificación de la conexión Render–Neon. El objetivo es GitHub → Render con PostgreSQL externa en Neon. [Estado](ESTADO.md), [decisiones](PROJECT_CANONICAL_CONTEXT.md) y [pasos de despliegue](docs/despliegue-opcion.md).

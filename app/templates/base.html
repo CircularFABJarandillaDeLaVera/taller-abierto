@@ -8,9 +8,11 @@
 </head>
 <body>
   <a class="skip-link" href="#contenido">Saltar al contenido</a>
-  <header class="site-header"><div class="container header-inner"><a class="wordmark" href="/" aria-label="Taller Abierto, inicio">Taller<span>Abierto</span><i aria-hidden="true"></i></a><nav aria-label="Navegación principal"><a href="/catalogo">Creaciones</a><a href="/figura-personalizada">Tu figura</a><a href="/panel">Mi espacio</a></nav></div></header>
+  <header class="site-header"><div class="container header-inner"><a class="wordmark" href="/" aria-label="Taller Abierto, inicio">Taller<span>Abierto</span><i aria-hidden="true"></i></a><nav aria-label="Navegación principal"><a href="/catalogo">Creaciones</a><a href="/figura-personalizada">Tu figura</a><a href="/panel">Mi espacio <span class="nav-count" data-news-count hidden></span></a></nav></div></header>
+  <div class="notice-toast" data-news-toast role="status" aria-live="polite" hidden><span data-news-text></span> <a data-news-link href="/panel">Ver conversación</a></div>
   <main id="contenido" class="container">{% block content %}{% endblock %}</main>
   <footer class="site-footer"><div class="container footer-inner"><span>Taller Abierto · demo educativa de Comercio y Marketing</span><span>Productos y precios orientativos de ejemplo</span><a href="/creadores">Conoce a quienes crean</a></div></footer>
+  {% if notifications_active %}<script defer src="/static/notifications.js" data-poll-seconds="{{ poll_seconds }}"></script>{% endif %}
 </body>
 </html>
 

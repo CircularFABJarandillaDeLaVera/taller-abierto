@@ -1,6 +1,6 @@
 """Rutas HTTP mínimas de la fase 0."""
 
-from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
@@ -12,7 +12,6 @@ from app.models import OrderKind
 from app.csrf import attach, issue, verify
 from app.requests_service import InvalidRequest, create_request
 from app.identity import new_session, current_user
-from app.photos import PhotoError, prepare, RIGHTS_TEXT, PERSON_TEXT, MINOR_TEXT, USE_TEXT
 from app.templating import templates
 
 router = APIRouter()
@@ -61,28 +60,27 @@ def product_request(slug: str, request: Request, alias: str = Form(""), message:
     return response
 
 
-def photo_texts():
-    return {"rights_text": RIGHTS_TEXT, "person_text": PERSON_TEXT, "minor_text": MINOR_TEXT, "use_text": USE_TEXT}
-
-
 @router.get("/figura-personalizada", response_class=HTMLResponse)
-def custom_form(request: Request):
+def custom_form(request: Request, db: Session = Depends(get_db)):
     token = issue()
-    response = templates.TemplateResponse(request=request, name="custom_form.html", context={"app_name": get_settings().app_name, "csrf_token": token, **photo_texts()})
+    response = templates.TemplateResponse(request=request, name="custom_form.html", context={"app_name": get_settings().app_name, "csrf_token": token})
     attach(response, token)
     return response
 
 
 @router.post("/figura-personalizada", response_class=HTMLResponse)
-async def custom_request(request: Request, alias: str = Form(""), description: str = Form(""), csrf_token: str = Form(""), rights_confirmed: str = Form(""), person_confirmed: str = Form(""), photos: list[UploadFile] = File(default=[]), db: Session = Depends(get_db)):
-    verify(request, csrf_token)
+async def custom_request(request: Request, db: Session = Depends(get_db)):
+    if request.headers.get("content-type", "").lower().startswith("multipart/form-data"):
+        raise HTTPException(status_code=415, detail="Las fotografías no se reciben en esta aplicación.")
+    form = await request.form()
+    alias = str(form.get("alias", ""))
+    description = str(form.get("description", ""))
+    verify(request, str(form.get("csrf_token", "")))
     try:
-        prepared = await prepare(photos, rights_confirmed, person_confirmed)
-        order, recovery = create_request(db, alias=alias, message=description, kind=OrderKind.CUSTOM_FIGURE, visitor=current_user(db, request.cookies.get("ta_session")), photos=prepared)
-    except (InvalidRequest, PhotoError) as exc:
+        order, recovery = create_request(db, alias=alias, message=description, kind=OrderKind.CUSTOM_FIGURE, visitor=current_user(db, request.cookies.get("ta_session")))
+    except InvalidRequest as exc:
         token = issue()
-        field = getattr(exc, "field", None)
-        response = templates.TemplateResponse(request=request, name="custom_form.html", status_code=422, context={"app_name": get_settings().app_name, "error": str(exc) if not field else None, "photo_error": str(exc), "photo_error_field": field, "rights_checked": rights_confirmed == "on", "person_checked": person_confirmed == "on", "alias_value": alias[:80], "description_value": description[:2000], "csrf_token": token, **photo_texts()})
+        response = templates.TemplateResponse(request=request, name="custom_form.html", status_code=422, context={"app_name": get_settings().app_name, "error": str(exc), "alias_value": alias[:80], "description_value": description[:2000], "csrf_token": token})
         attach(response, token)
         return response
     response = RedirectResponse("/solicitud-recibida", status_code=303)
@@ -93,7 +91,7 @@ async def custom_request(request: Request, alias: str = Form(""), description: s
 
 
 @router.get("/solicitud-recibida", response_class=HTMLResponse)
-def confirmation(request: Request):
+def confirmation(request: Request, db: Session = Depends(get_db)):
     recovery = request.cookies.get("ta_new_recovery")
     response = templates.TemplateResponse(request=request, name="confirmation.html", context={"app_name": get_settings().app_name, "recovery": recovery})
     response.delete_cookie("ta_new_recovery")

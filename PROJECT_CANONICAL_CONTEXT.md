@@ -1,19 +1,24 @@
 # Contexto canónico
 
-## Decisiones
+## Arquitectura y dominio
 
-- Aplicación monolítica con FastAPI, Jinja2, HTML/CSS/JavaScript sencillo, SQLAlchemy y Alembic.
-- Python 3.12; SQLite para la demo y una URL configurable para facilitar evolución posterior.
-- Ocho creadores se representarán por alias ficticios y roles `visitor`, `student` y `teacher`.
-- Un encargo puede ser una consulta sobre producto o una figura personalizada. El destinatario puede quedar vacío hasta asignación manual por docente.
-- Estados: `received -> in_conversation -> accepted -> completed`; cualquier encargo activo puede pasar a `cancelled` según la regla de negocio que se concrete.
-- Una oferta o aceptación no constituye pago ni compra formal.
-- Las fotografías no aparecerán en el catálogo; los adjuntos se almacenarán fuera de la carpeta pública.
-- En microfase 2, cada envío local crea un visitante interno con alias aleatorio y guarda el alias visible en el encargo. Ese alias escrito no acredita identidad. La consulta de producto toma el creador como destinatario desde la base; la figura queda sin destinatario. Solicitud y mensaje inicial se confirman juntos; ofertas en céntimos enteros. Token CSRF firmado y cookie SameSite Strict; confirmación genérica tras 303, sin endpoint público de encargos.
-- En microfase 3, las solicitudes nuevas tienen acceso de visitante por sesión revocable y enlace privado de un solo uso (48 h). Las antiguas conservan `visitor_access_enabled = false`; no se vinculan por alias. Docente ve todas y asigna/reasigna figuras; creador ve solo las asignadas y pierde acceso tras reasignación. Visitante ve solo las suyas. Contraseñas PBKDF2-HMAC-SHA256 con sal, tokens de sesión y recuperación aleatorios con huella SHA-256 en la base. Mensajes pasan de `received` a `in_conversation`; no se amplían otros estados.
-- En microfase 4, cada lote de fotos de una figura crea una aceptación con versión `fotografias-v1-2026-11`, fecha y aceptante, enlazada a sus adjuntos. Se exigen dos declaraciones separadas si hay archivos. Pillow valida y regraba JPG/PNG sin EXIF. Máximo tres fotos activas, 5 MB cada una y 16 MB por petición. Almacenamiento privado fuera de `static`, comprobación de permisos para cada lectura y borrado; una reasignación retira acceso al creador anterior. La aceptación no demuestra por sí sola los derechos ni el permiso de imagen; si aparece un menor, el docente debe revisar la autorización del representante legal antes de utilizar la foto.
+- Una aplicación FastAPI con Jinja2, CSS/JavaScript local, SQLAlchemy, Alembic y SQLite local; Python 3.12. `cartel.jpg` es referencia visual y se conserva. Los ocho creadores, cinco productos y precios son ficticios.
+- Una solicitud de producto se dirige al creador obtenido en el servidor. Una figura personalizada queda sin destinatario hasta que el docente la asigna manualmente; puede reasignarla. La solicitud y su primer mensaje se guardan juntos. Las ofertas son céntimos enteros y no implican pago.
+- Roles `visitor`, `student`, `teacher`; alias visible no acredita identidad. Creadores y docente usan credenciales individuales con hash y sesiones revocables. Visitante usa sesión y enlace privado de recuperación de un solo uso. Las solicitudes anteriores a la identificación siguen sin acceso recuperable para el visitante y no se reclaman por alias.
+- El docente ve todos los encargos; el creador solo los asignados; el visitante solo los propios recuperables. Toda lectura, respuesta y asignación comprueba permiso en el servidor. Los POST tienen CSRF. Los mensajes tienen autor y fecha. Una respuesta puede pasar el estado interno de `received` a `in_conversation`; la lectura no cambia el estado. Los demás estados previstos (`accepted`, `completed`, `cancelled`) no tienen todavía flujo de interfaz.
 
-## Pendientes explícitos
+## Avisos y lectura
 
-Pendientes: limitación de intentos, recuperación asistida para visitantes sin enlace, política de retención y limpieza de cuarentena, revisión docente de imágenes de menores, despliegue con HTTPS y demás transiciones de estado. `SECRET_KEY` de `.env.example` es solo un marcador local; debe sustituirse antes de cualquier uso fuera de la máquina local.
+- La migración `0006_order_reads` conserva el historial e inicializa un corte técnico de mensajes previos como leídos para quienes ya tenían acceso, sin inventar fecha histórica ni reasignar encargos. `order_reads` guarda por usuario y encargo último ID mostrado y versión de asignación vista.
+- El servidor entrega un corte firmado, ligado a usuario, encargo y mensaje efectivamente entregado. El navegador lo confirma por POST con CSRF; si falla, puede repetir el mismo corte aunque los mensajes ya estén en pantalla. Un mensaje posterior no queda leído por ese intento. Mensajes propios no generan novedad. El docente recibe un solo aviso por conversación para figuras sin asignar o mensajes ajenos; el creador recibe «Nueva para ti» por asignación sin que todo el historial cuente como nuevo.
+- El panel y el sondeo comparten la plantilla de tarjeta. El endpoint privado devuelve todos los encargos autorizados y sus avisos; el cliente añade o retira tarjetas sin recarga. Sondeo cada 10 s configurable, solo en pestaña visible y con sesión; no hay WebSockets, correo ni push.
 
+## Fotografías: función retirada
+
+La microfase 4 permitió subir fotografías, pero la decisión vigente retira por completo controles, vistas y rutas de subida, lectura y eliminación. Los adjuntos y aceptaciones previos, sus archivos privados fuera de `static` y todas las migraciones se conservan sin acceso desde la aplicación. El formulario de figura pide solo alias y descripción. Después de asignar al creador, las partes acordarán por otro canal la entrega de imágenes. La web recuerda que se requieren derechos o autorización de uso y permiso expreso de la persona representada; para menores interviene su representante legal. No se solicitan documentos de identidad.
+
+La apariencia fue aprobada por el usuario. También confirmó manualmente el intercambio de mensajes, asignación/reasignación y pérdida de acceso del creador anterior, además de la antigua función de fotos. Esto es distinto de las pruebas automatizadas y de la posterior revisión en Chrome con datos aislados. Punto de control previo: `6f5116c`, etiqueta `v0.1.0-demo-local`.
+
+## Pendientes
+
+Antes de uso público: endurecer acceso (incluida limitación de intentos), política de retención y tratamiento de datos históricos, gestión operativa de credenciales y recuperación, HTTPS y pruebas con PostgreSQL real. Se preparó el destino GitHub → Render + Neon: Psycopg 3, Python 3.12, URL por entorno para Alembic, guardas de TLS y secreto en producción, y arranque con migración y carga idempotente. Render Free no ofrece predeploy; el script lo hace antes de iniciar Uvicorn. No se ha desplegado ni probado contra Neon. Cuentas, encargos, mensajes y sesiones deben permanecer en PostgreSQL, nunca en el disco temporal de Render. Véase [docs/despliegue-opcion.md](docs/despliegue-opcion.md).

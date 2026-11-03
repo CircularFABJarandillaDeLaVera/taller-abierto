@@ -3,7 +3,7 @@
 from datetime import datetime
 from enum import StrEnum
 
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, Numeric, String, Text, func
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -72,12 +72,14 @@ class Order(Base):
     requester_alias: Mapped[str | None] = mapped_column(String(80), nullable=True)
     offer_cents: Mapped[int | None] = mapped_column(Integer, nullable=True)
     visitor_access_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    assignment_version: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
     requester: Mapped[User] = relationship(foreign_keys=[requester_id])
     recipient: Mapped[User | None] = relationship(foreign_keys=[recipient_id])
     product: Mapped[Product | None] = relationship(back_populates="orders")
     messages: Mapped[list["Message"]] = relationship(back_populates="order", cascade="all, delete-orphan")
     attachments: Mapped[list["Attachment"]] = relationship(back_populates="order", cascade="all, delete-orphan")
+    reads: Mapped[list["OrderRead"]] = relationship(back_populates="order", cascade="all, delete-orphan")
 
 
 class Message(Base):
@@ -89,6 +91,20 @@ class Message(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
     order: Mapped[Order] = relationship(back_populates="messages")
     author: Mapped[User] = relationship()
+
+
+class OrderRead(Base):
+    """Corte de lectura individual; no representa una fecha histórica de lectura."""
+
+    __tablename__ = "order_reads"
+    __table_args__ = (UniqueConstraint("order_id", "user_id", name="uq_order_reads_person"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    order_id: Mapped[int] = mapped_column(ForeignKey("orders.id", ondelete="CASCADE"), nullable=False)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    last_read_message_id: Mapped[int | None] = mapped_column(ForeignKey("messages.id", ondelete="SET NULL"), nullable=True)
+    seen_assignment_version: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    order: Mapped[Order] = relationship(back_populates="reads")
+    user: Mapped[User] = relationship()
 
 
 class Attachment(Base):

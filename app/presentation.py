@@ -5,7 +5,7 @@ from datetime import datetime
 from app.models import Order, OrderStatus
 
 STATUS_LABELS = {
-    OrderStatus.RECEIVED: "Nueva solicitud",
+    OrderStatus.RECEIVED: "Recibido",
     OrderStatus.IN_CONVERSATION: "En conversación",
     OrderStatus.ACCEPTED: "Aceptado",
     OrderStatus.COMPLETED: "Terminado",
@@ -18,4 +18,6 @@ def status_label(status: OrderStatus) -> str:
 
 
 def activity_date(order: Order) -> datetime:
+    if hasattr(order, "_news_activity"):
+        return order._news_activity
     return max((message.created_at for message in order.messages), default=order.created_at)
