@@ -1,4 +1,17 @@
-# Estado real — microfase 6 corregida
+# Estado actual — reparación de la migración 0006 para PostgreSQL
+
+Fecha: 4 de noviembre de 2026. El repositorio está en GitHub (`main`) y el proyecto Neon `taller-abierto` ya estaba vinculado. El primer despliegue de Render llegó a Alembic, pero la migración `0006_order_reads` falló en PostgreSQL: comparaba la columna booleana `visitor_access_enabled` con el entero `1`. La consulta usa ahora `= TRUE`, válido en PostgreSQL y SQLite. Se revisaron las demás migraciones y no se encontró otra comparación de un booleano con `0` o `1`.
+
+Comprobaciones de esta reparación:
+
+- Migración histórica con datos ficticios en SQLite: encargo con acceso del visitante y encargo sin ese acceso; se crean tres y dos cortes de lectura, respectivamente.
+- La misma prueba ejecutó Alembic y el `INSERT ... SELECT` realmente en PostgreSQL, en la base vacía `regression_boolean_20261104` de la rama Neon temporal `regression-boolean-20261104` (solo esquema, caduca el 5 de noviembre de 2026). Resultado: **1 passed**. No se ejecutaron migraciones en la rama `production` desde este entorno.
+- Suite local con bases y directorios aislados: **15 passed, 1 skipped, 1 warning**. El caso PostgreSQL se omite si no se proporciona una base de regresión explícita. La advertencia es la deprecación conocida de Starlette/AnyIO.
+- `alembic upgrade head` completó todas las revisiones en una SQLite nueva dentro de `.neon-tooling/`; no se modificó la SQLite de trabajo.
+
+En el siguiente despliegue de Render queda por verificar que `0006` avance en la base Neon de `production`, que `app.seed` cargue el catálogo y que `/` y `/health` respondan. Esta reparación no demuestra todavía la conexión ni el arranque desde la infraestructura de Render.
+
+## Registro anterior — microfase 6 corregida
 
 La apariencia de la microfase 5 fue aprobada por el usuario. La demo local tiene catálogo, solicitudes, sesiones por rol, asignación docente, conversación privada y avisos de mensajes nuevos. Sigue en WebIES, sin despliegue, remoto nuevo, commit ni push de estos cambios. El punto de control anterior es `6f5116c` con etiqueta `v0.1.0-demo-local`.
 

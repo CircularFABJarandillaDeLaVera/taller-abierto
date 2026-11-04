@@ -1,14 +1,18 @@
 """Lectura individual y avisos con bases efímeras, sin tocar encargos de trabajo."""
 
+import os
 import re
 
 from alembic import command
 from alembic.config import Config
 from fastapi.testclient import TestClient
-from sqlalchemy import select, text
+import pytest
+from sqlalchemy import inspect, select, text
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import sessionmaker
 
 from app.database import Base, get_db, make_engine
+from app.config import sqlalchemy_url
 from app.identity import new_recovery, new_session
 from app.main import app
 from app.models import Message, Order, OrderKind, OrderRead, OrderStatus, User, UserRole
@@ -147,13 +151,27 @@ def test_personal_reading_assignment_and_recovery(tmp_path):
 def test_migration_initializes_history_without_changing_it(tmp_path):
     path = tmp_path / "historial.db"
     url = f"sqlite:///{path}"
-    cfg = Config("alembic.ini")
-    cfg.set_main_option("sqlalchemy.url", url)
-    command.upgrade(cfg, "0005_private_photos")
+    _check_history_migration(url)
+
+
+def test_migration_initializes_history_on_isolated_postgres():
+    url = os.environ.get("TEST_POSTGRES_URL")
+    if not url:
+        pytest.skip("Requires an isolated PostgreSQL regression database")
+    if not make_url(sqlalchemy_url(url)).database.startswith("regression_"):
+        pytest.fail("TEST_POSTGRES_URL must target a dedicated regression_ database")
+    _check_history_migration(url)
+
+
+def _check_history_migration(url):
     engine = make_engine(url)
+    assert not inspect(engine).get_table_names(), "Regression database must start empty"
+    cfg = Config("alembic.ini")
+    cfg.set_main_option("sqlalchemy.url", sqlalchemy_url(url).replace("%", "%%"))
+    command.upgrade(cfg, "0005_private_photos")
     with engine.begin() as connection:
-        connection.execute(text("INSERT INTO users (id, alias, role, is_active) VALUES (1,'visitante','VISITOR',1),(2,'creador','STUDENT',1),(3,'docente','TEACHER',1)"))
-        connection.execute(text("INSERT INTO orders (id,kind,status,requester_id,recipient_id,description,requester_alias,visitor_access_enabled) VALUES (1,'CUSTOM_FIGURE','RECEIVED',1,2,'Descripción intacta','Prueba',1)"))
+        connection.execute(text("INSERT INTO users (id, alias, role, is_active) VALUES (1,'visitante','VISITOR',TRUE),(2,'creador','STUDENT',TRUE),(3,'docente','TEACHER',TRUE)"))
+        connection.execute(text("INSERT INTO orders (id,kind,status,requester_id,recipient_id,description,requester_alias,visitor_access_enabled) VALUES (1,'CUSTOM_FIGURE','RECEIVED',1,2,'Descripción intacta','Prueba',TRUE),(2,'CUSTOM_FIGURE','RECEIVED',1,2,'Otro encargo','Prueba',FALSE)"))
         connection.execute(text("INSERT INTO messages (id,order_id,author_id,body) VALUES (1,1,1,'Mensaje intacto')"))
         connection.execute(text("INSERT INTO photo_consents (id,order_id,accepted_by_id,text_version) VALUES (1,1,1,'fotografias-v1-2026-11')"))
         connection.execute(text("INSERT INTO attachments (id,order_id,uploaded_by_id,source,stored_name,original_name,mime_type,size_bytes,consent_id) VALUES (1,1,1,'REQUESTER','nombre-interno.png','foto.png','image/png',3,1)"))
@@ -164,8 +182,11 @@ def test_migration_initializes_history_without_changing_it(tmp_path):
         assert connection.execute(text("SELECT COUNT(*) FROM attachments WHERE consent_id=1")).scalar() == 1
         assert connection.execute(text("SELECT COUNT(*) FROM photo_consents")).scalar() == 1
         assert connection.execute(text("SELECT COUNT(*) FROM order_reads WHERE order_id=1 AND last_read_message_id=1")).scalar() == 3
+        assert connection.execute(text("SELECT COUNT(*) FROM order_reads WHERE order_id=2")).scalar() == 2
+        assert connection.execute(text("SELECT COUNT(*) FROM order_reads WHERE order_id=2 AND user_id=1")).scalar() == 0
         assert connection.execute(text("SELECT assignment_version FROM orders WHERE id=1")).scalar() == 0
     with sessionmaker(engine)() as db:
         for user_id in (1, 2, 3):
             from app.notifications import overview
             assert overview(db, db.get(User, user_id))[1] == {}
+    engine.dispose()

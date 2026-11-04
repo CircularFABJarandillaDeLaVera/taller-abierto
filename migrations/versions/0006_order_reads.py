@@ -36,7 +36,7 @@ def upgrade():
     op.execute(sa.text("""
         INSERT INTO order_reads (order_id, user_id, last_read_message_id, seen_assignment_version)
         SELECT o.id, o.requester_id, (SELECT MAX(m.id) FROM messages m WHERE m.order_id = o.id), 0
-        FROM orders o WHERE o.visitor_access_enabled = 1
+        FROM orders o WHERE o.visitor_access_enabled = TRUE
     """))
 
 
