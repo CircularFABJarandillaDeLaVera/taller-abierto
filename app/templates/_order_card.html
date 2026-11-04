@@ -3,6 +3,6 @@
   <p class="notice-line"><span class="notice-badge" data-card-notice {% if not notice %}hidden{% endif %}>{{ notice.label if notice else '' }}</span><span class="quiet-note" data-card-quiet {% if notice %}hidden{% endif %}>Sin novedades</span></p>
   <h2><a href="/panel/solicitudes/{{ order.id }}">{% if order.kind.value == 'custom_figure' %}Figura personalizada{% else %}Consulta de producto{% endif %}</a></h2>
   {% if order.product %}<p class="order-product">{{ order.product.name }}</p>{% endif %}
-  <dl class="order-facts"><div><dt>Cliente</dt><dd>{{ order.requester_alias or 'Sin alias' }}</dd></div><div><dt>Creador</dt><dd>{{ order.recipient.alias if order.recipient else 'Sin asignar' }}</dd></div><div><dt>Actividad</dt><dd><time datetime="{{ (order|actividad).isoformat() }}">{{ (order|actividad).strftime('%d/%m/%Y · %H:%M') }}</time></dd></div></dl>
+  <dl class="order-facts"><div><dt>Cliente</dt><dd>{{ order.requester_alias or 'Sin alias' }}</dd></div><div><dt>Artesano/a</dt><dd>{{ order.recipient.alias if order.recipient else 'Sin asignar' }}</dd></div><div><dt>Actividad</dt><dd><time datetime="{{ (order|actividad).isoformat() }}">{{ (order|actividad).strftime('%d/%m/%Y · %H:%M') }}</time></dd></div></dl>
   <a class="text-link" href="/panel/solicitudes/{{ order.id }}">Ver conversación <span aria-hidden="true">→</span></a>
 </article>

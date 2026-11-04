@@ -44,7 +44,7 @@ def login_page(request: Request, db: Session = Depends(get_db)):
 def login(request: Request, alias: str = Form(""), password: str = Form(""), csrf_token: str = Form(""), db: Session = Depends(get_db)):
     verify(request, csrf_token)
     user = db.scalar(select(User).where(User.alias == alias, User.is_active.is_(True)))
-    if not user or user.role not in (UserRole.STUDENT, UserRole.TEACHER) or not check_password(password, user.password_hash):
+    if not user or user.role not in (UserRole.STUDENT, UserRole.TEACHER, UserRole.ADMIN) or not check_password(password, user.password_hash):
         return render(request, "login.html", {"error": "Credenciales incorrectas."}, status_code=401, csrf=True)
     revoke_session(db, request.cookies.get("ta_session"))
     response = RedirectResponse("/panel", status_code=303)
@@ -88,7 +88,7 @@ def panel(request: Request, db: Session = Depends(get_db)):
     if user is None:
         return RedirectResponse("/entrar", status_code=303)
     orders, notices = overview(db, user)
-    students = db.scalars(select(User).where(User.role == UserRole.STUDENT, User.is_active.is_(True)).order_by(User.alias)).all() if user.role == UserRole.TEACHER else []
+    students = db.scalars(select(User).where(User.role == UserRole.STUDENT, User.is_active.is_(True)).order_by(User.alias)).all() if user.role in (UserRole.TEACHER, UserRole.ADMIN) else []
     return render(request, "panel.html", {"user": user, "orders": orders, "notices": notices, "students": students}, csrf=True)
 
 
@@ -111,7 +111,7 @@ def detail(order_id: int, request: Request, db: Session = Depends(get_db)):
 def order_page(order_id: int, request: Request, db: Session):
     user = actor(request, db)
     order = require_access(db.scalar(select(Order).options(selectinload(Order.messages).selectinload(Message.author), selectinload(Order.recipient), selectinload(Order.product)).where(Order.id == order_id)), user)
-    students = db.scalars(select(User).where(User.role == UserRole.STUDENT, User.is_active.is_(True)).order_by(User.alias)).all() if user.role == UserRole.TEACHER else []
+    students = db.scalars(select(User).where(User.role == UserRole.STUDENT, User.is_active.is_(True)).order_by(User.alias)).all() if user.role in (UserRole.TEACHER, UserRole.ADMIN) else []
     shown_id = max((message.id for message in order.messages), default=0)
     read_cursor = issue_read_cursor(user.id, order.id, shown_id)
     return render(request, "order.html", {"user": user, "order": order, "shown_id": shown_id, "read_cursor": read_cursor, "students": students}, csrf=True)

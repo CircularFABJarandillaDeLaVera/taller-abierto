@@ -13,6 +13,7 @@ class UserRole(StrEnum):
     VISITOR = "visitor"
     STUDENT = "student"
     TEACHER = "teacher"
+    ADMIN = "admin"
 
 
 class OrderKind(StrEnum):

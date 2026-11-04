@@ -31,7 +31,7 @@ def notice_for(order: Order, user: User, read: OrderRead | None) -> Notice | Non
         read is None or read.seen_assignment_version < order.assignment_version
     ):
         return Notice(order.id, "Nueva para ti", 0, "assignment")
-    if user.role == UserRole.TEACHER and order.kind == OrderKind.CUSTOM_FIGURE and order.recipient_id is None and read is None:
+    if user.role in (UserRole.TEACHER, UserRole.ADMIN) and order.kind == OrderKind.CUSTOM_FIGURE and order.recipient_id is None and read is None:
         return Notice(order.id, "Nueva sin asignar", 0, "unassigned")
     cutoff = read.last_read_message_id if read and read.last_read_message_id else 0
     count = getattr(order, "_news_unread", None)

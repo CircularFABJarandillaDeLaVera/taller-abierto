@@ -99,7 +99,7 @@
       empty.className = 'empty-state';
       empty.dataset.emptyState = '';
       const heading = document.createElement('h2');
-      heading.textContent = role === 'student' ? 'Aún no tienes solicitudes asignadas' : role === 'teacher' ? 'Todavía no hay encargos' : 'Aquí aparecerán tus encargos';
+      heading.textContent = role === 'student' ? 'Aún no tienes solicitudes asignadas' : role === 'teacher' || role === 'admin' ? 'Todavía no hay encargos' : 'Aquí aparecerán tus encargos';
       const explanation = document.createElement('p');
       explanation.textContent = 'Cuando haya encargos para ti, aparecerán aquí mientras esta web esté abierta.';
       empty.append(heading, explanation);

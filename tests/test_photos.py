@@ -82,7 +82,7 @@ def test_custom_request_without_photos_and_multipart_rejected(tmp_path):
         assert page.status_code == 200
         assert 'name="alias"' in page.text and 'name="description"' in page.text
         assert 'type="file"' not in page.text and 'type="checkbox"' not in page.text
-        assert "Antes de enviar fotografías al creador" in page.text
+        assert "Antes de enviar fotografías a la persona artesana" in page.text
         csrf = re.search(r'name="csrf_token" value="([^"]+)"', page.text).group(1)
         data = {"alias": "Visitante ficticio", "description": "Una figura con chaqueta verde", "csrf_token": csrf}
         assert client.post("/figura-personalizada", data=data, files={"photos": ("foto.png", b"falso", "image/png")}).status_code == 415

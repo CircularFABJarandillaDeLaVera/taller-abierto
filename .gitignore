@@ -1,5 +1,7 @@
 # Entornos y paquetes locales
 .venv/
+.neon-tooling/
+.codex/
 venv/
 env/
 .virtualenv/
@@ -48,3 +50,4 @@ test-results/
 .DS_Store
 Thumbs.db
 
+.neon

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Gestionar accesos · {{ app_name }}{% endblock %}
+{% block content %}
+<a class="back-link" href="/panel">← Volver a mi espacio</a>
+<section class="page-intro"><span class="eyebrow">Cuentas del taller</span><h1>Gestionar accesos</h1><p>Entrega cada contraseña provisional por un canal privado. Solo se muestra una vez y cada persona puede cambiarla al entrar.</p></section>
+{% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
+<div class="account-layout">
+  <section class="form-section card"><h2>Crear perfil y acceso</h2>
+    <form method="post" action="/panel/cuentas/alta" autocomplete="off">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="mode" value="new">
+      <label>Rol<select name="role" required>{% for role in roles %}<option value="{{ role.value }}">{{ 'Responsable de tienda' if role.value == 'teacher' else 'Artesano/a' }}</option>{% endfor %}</select></label>
+      <label>Alias nuevo<input name="alias" minlength="3" maxlength="80" pattern="[a-z][a-z0-9_]*" required autocomplete="off"></label>
+      <button class="button" type="submit">Crear cuenta</button>
+    </form>
+  </section>
+  <section class="form-section card"><h2>Vincular perfil de artesano existente</h2>
+    {% if unlinked %}<form method="post" action="/panel/cuentas/alta">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="mode" value="existing"><input type="hidden" name="role" value="student">
+      <label>Perfil sin acceso<select name="existing_user_id" required>{% for person in unlinked %}<option value="{{ person.id }}">@{{ person.alias }}</option>{% endfor %}</select></label>
+      <button class="button" type="submit">Vincular y crear acceso</button>
+    </form>{% else %}<p>Todos los perfiles de artesano activos ya tienen acceso.</p>{% endif %}
+  </section>
+</div>
+<section class="info-surface"><h2>Cuentas gestionables</h2>
+  {% if accounts %}<div class="account-list">{% for person in accounts %}<article class="account-row">
+    <div><strong>@{{ person.alias }}</strong> · {{ 'Responsable de tienda' if person.role.value == 'teacher' else 'Artesano/a' }}<br><span class="muted">{{ 'Activa' if person.is_active else 'Desactivada' }} · {{ 'Con acceso' if person.password_hash else 'Sin acceso' }}</span></div>
+    <div class="account-actions"><form method="post" action="/panel/cuentas/{{ person.id }}/restablecer"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="quiet-button" type="submit">Restablecer acceso</button></form>
+    <form method="post" action="/panel/cuentas/{{ person.id }}/estado"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="active" value="{{ '0' if person.is_active else '1' }}"><button class="quiet-button" type="submit">{{ 'Desactivar' if person.is_active else 'Activar' }}</button></form></div>
+  </article>{% endfor %}</div>{% else %}<p>Aún no hay cuentas de estos roles.</p>{% endif %}
+</section>
+{% endblock %}

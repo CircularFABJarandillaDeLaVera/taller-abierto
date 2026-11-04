@@ -25,4 +25,4 @@ def test_custom_form_asks_only_for_idea_and_alias(tmp_path):
     assert 'name="description"' in page.text
     for removed in ('name="photos"', 'name="rights_confirmed"', 'name="person_confirmed"'):
         assert removed not in page.text
-    assert "Cuando tengas un creador asignado" in page.text
+    assert "Cuando tengas una persona artesana asignada" in page.text
